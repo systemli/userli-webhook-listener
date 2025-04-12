@@ -1,4 +1,4 @@
-FROM golang:1.24-alpine AS build
+FROM alpine:3.21 AS build
 
 ENV USER=appuser
 ENV UID=10001
@@ -12,20 +12,9 @@ RUN adduser \
     --uid "${UID}" \
     "${USER}"
 
-WORKDIR /app
-
-COPY go.mod go.sum ./
-
-RUN go mod download && go mod verify
-
-COPY . .
-
-RUN go build -ldflags="-s -w" -o ./userli-webhook-listener
-
-
 FROM scratch AS runtime
 
-COPY --from=build /app/userli-webhook-listener /userli-webhook-listener
+COPY userli-webhook-listener /userli-webhook-listener
 
 COPY --from=build /etc/passwd /etc/passwd
 COPY --from=build /etc/group /etc/group
