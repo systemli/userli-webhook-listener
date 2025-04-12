@@ -30,36 +30,11 @@ func init() {
 }
 
 func main() {
-	listenAddr := ":8080"
-	if os.Getenv("LISTEN_ADDR") != "" {
-		listenAddr = os.Getenv("LISTEN_ADDR")
-	}
-
-	nextcloudUrl := os.Getenv("NEXTCLOUD_OIDC_USER_API_URL")
-	if nextcloudUrl == "" {
-		logger.Fatal("NEXTCLOUD_OIDC_USER_API_URL environment variable is required")
-	}
-	nextcloudUsername := os.Getenv("NEXTCLOUD_ADMIN_USERNAME")
-	if nextcloudUsername == "" {
-		logger.Fatal("NEXTCLOUD_ADMIN_USERNAME environment variable is required")
-	}
-	nextcloudPassword := os.Getenv("NEXTCLOUD_ADMIN_PASSWORD")
-	if nextcloudPassword == "" {
-		logger.Fatal("NEXTCLOUD_ADMIN_PASSWORD environment variable is required")
-	}
-	nextcloudProviderID := os.Getenv("NEXTCLOUD_OIDC_PROVIDER_ID")
-	if nextcloudProviderID == "" {
-		logger.Fatal("NEXTCLOUD_OIDC_PROVIDER_ID environment variable is required")
-	}
-
-	logger.Info("Starting server", zap.String("listenAddr", listenAddr))
-	nc, err := NewNextcloud(nextcloudUrl, nextcloudUsername, nextcloudPassword, nextcloudProviderID)
-	if err != nil {
-		logger.Fatal("Failed to create Nextcloud client", zap.Error(err))
-	}
-
+	config := BuildConfig()
+	logger.Info("Starting server", zap.String("listenAddr", config.ListenAddr))
+	nc := NewNextcloud(config.Nextcloud)
 	s := NewServer(nc)
-	if err := s.Start(listenAddr); err != nil {
+	if err := s.Start(config.ListenAddr); err != nil {
 		logger.Fatal("Failed to start server", zap.Error(err))
 	}
 }

@@ -1,12 +1,3 @@
 # userli-webhook-listener
 
-This listens to webhooks sent by userli and reacts on them. The idea is to
-auto-provisision and deprovision accounts in external services using requests to
-these.
-
-Supported webhook endpoints:
-- User got created
-- User got deleted
-
-upported service to provision/deprovision accounts based on the event:
-- Nextcloud
+[![Integration](https://github.com/systemli/userli-webhook-listener/actions/workflows/integration.yml/badge.svg)](https://github.com/systemli/userli-webhook-listener/actions/workflows/integration.yml) [![Quality](https://github.com/systemli/userli-webhook-listener/actions/workflows/quality.yml/badge.svg)](https://github.com/systemli/userli-webhook-listener/actions/workflows/quality.yml) [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=systemli_userli-webhook-listener&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=systemli_userli-webhook-listener) [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=systemli_userli-webhook-listener&metric=coverage)](https://sonarcloud.io/summary/new_code?id=systemli_userli-webhook-listener) [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=systemli_userli-webhook-listener&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=systemli_userli-webhook-listener)

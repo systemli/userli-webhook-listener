@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -27,38 +26,44 @@ func (s *Server) Start(addr string) error {
 }
 
 func (s *Server) RegisterRoutes() {
-	s.router.Post("/user", s.handleUserCreated)
-	s.router.Delete("/user/{email}", s.handleUserDeleted)
+	s.router.Post("/userli", s.handleUserliEvent)
 }
 
-func (s *Server) handleUserCreated(w http.ResponseWriter, r *http.Request) {
-	logger.Info("User created event received")
+func (s *Server) handleUserliEvent(w http.ResponseWriter, r *http.Request) {
+	logger.Info("Userli event received")
 
-	var body struct {
-		Email string `json:"email"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+	var event UserEvent
+	if err := json.NewDecoder(r.Body).Decode(&event); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	err := s.nextcloud.ProvisionUser(body.Email)
-	if err != nil {
-		http.Error(w, "Failed to provision user in Nextcloud", http.StatusInternalServerError)
+	switch event.Type {
+	case EventTypeUserCreated:
+		s.handleUserCreated(event)
+	case EventTypeUserDeleted:
+		s.handleUserDeleted(event)
+	default:
+		http.Error(w, "Unknown event type", http.StatusBadRequest)
 	}
 
 	w.WriteHeader(http.StatusOK)
 }
 
-func (s *Server) handleUserDeleted(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleUserCreated(event UserEvent) {
+	logger.Info("User created event received")
+
+	err := s.nextcloud.ProvisionUser(event.Data.Email)
+	if err != nil {
+		logger.Error("Failed to provision user in Nextcloud")
+	}
+}
+
+func (s *Server) handleUserDeleted(event UserEvent) {
 	logger.Info("User deleted event received")
 
-	email := chi.URLParam(r, "email")
-
-	err := s.nextcloud.DeprovisionUser(email)
+	err := s.nextcloud.DeprovisionUser(event.Data.Email)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to deprovision user in Nextcloud. Error: %s", err), http.StatusInternalServerError)
+		logger.Error("Failed to deprovision user in Nextcloud")
 	}
-
-	w.WriteHeader(http.StatusOK)
 }
