@@ -3,9 +3,10 @@ package main
 import "os"
 
 type Config struct {
-	LogLevel   string
-	ListenAddr string
-	Nextcloud  *NextcloudConfig
+	LogLevel      string
+	ListenAddr    string
+	WebhookSecret string
+	Nextcloud     *NextcloudConfig
 }
 
 func BuildConfig() *Config {
@@ -21,6 +22,7 @@ func BuildConfig() *Config {
 	if os.Getenv("LISTEN_ADDR") != "" {
 		cfg.ListenAddr = os.Getenv("LISTEN_ADDR")
 	}
+	cfg.WebhookSecret = getEnvOrFatal("WEBHOOK_SECRET")
 	cfg.Nextcloud = &NextcloudConfig{
 		ApiUrl:     getEnvOrFatal("NEXTCLOUD_OIDC_USER_API_URL"),
 		Username:   getEnvOrFatal("NEXTCLOUD_ADMIN_USERNAME"),

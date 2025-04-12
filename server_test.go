@@ -2,7 +2,11 @@ package main
 
 import (
 	"bytes"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
+	"net/http"
 	"net/http/httptest"
 	"testing"
 
@@ -28,7 +32,7 @@ func (s *ServerSuite) SetupTest() {
 	}
 	nc := NewNextcloud(config)
 
-	s.server = NewServer(nc)
+	s.server = NewServer("secret", nc)
 }
 
 func (s *ServerSuite) TestHandleWebhook() {
@@ -103,6 +107,51 @@ func (s *ServerSuite) TestHandleUserDeleted() {
 		w := httptest.NewRecorder()
 		s.server.handleUserliEvent(w, req)
 		s.Equal(200, w.Code)
+	})
+}
+
+func (s *ServerSuite) TestAuthMiddleware() {
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(200)
+	}
+
+	s.Run("valid token", func() {
+		payload := []byte(`{"dummy":"data"}`)
+		mac := hmac.New(sha256.New, []byte(s.server.webhookSecret))
+		mac.Write(payload)
+		validSignature := hex.EncodeToString(mac.Sum(nil))
+
+		req := httptest.NewRequest("POST", "/userli", bytes.NewBuffer(payload))
+		req.Header.Set("X-Signature", validSignature)
+
+		rr := httptest.NewRecorder()
+		wrappedHandler := s.server.Authmiddleware(http.HandlerFunc(handler))
+		wrappedHandler.ServeHTTP(rr, req)
+
+		s.Equal(200, rr.Code)
+	})
+
+	s.Run("invalid token", func() {
+		payload := []byte(`{"dummy":"data"}`)
+		req := httptest.NewRequest("POST", "/userli", bytes.NewBuffer(payload))
+		req.Header.Set("X-Signature", "invalid-signature")
+
+		rr := httptest.NewRecorder()
+		wrappedHandler := s.server.Authmiddleware(http.HandlerFunc(handler))
+		wrappedHandler.ServeHTTP(rr, req)
+
+		s.Equal(401, rr.Code)
+	})
+
+	s.Run("missing token", func() {
+		payload := []byte(`{"dummy":"data"}`)
+		req := httptest.NewRequest("POST", "/userli", bytes.NewBuffer(payload))
+
+		rr := httptest.NewRecorder()
+		wrappedHandler := s.server.Authmiddleware(http.HandlerFunc(handler))
+		wrappedHandler.ServeHTTP(rr, req)
+
+		s.Equal(401, rr.Code)
 	})
 }
 
