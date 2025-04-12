@@ -33,7 +33,7 @@ func main() {
 	config := BuildConfig()
 	logger.Info("Starting server", zap.String("listenAddr", config.ListenAddr))
 	nc := NewNextcloud(config.Nextcloud)
-	s := NewServer(nc)
+	s := NewServer(config.WebhookSecret, nc)
 	if err := s.Start(config.ListenAddr); err != nil {
 		logger.Fatal("Failed to start server", zap.Error(err))
 	}

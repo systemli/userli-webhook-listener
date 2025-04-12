@@ -14,6 +14,7 @@ type ConfigSuite struct {
 func (s *ConfigSuite) TestBuildConfig() {
 	os.Setenv("LOG_LEVEL", "info")
 	os.Setenv("LISTEN_ADDR", ":8080")
+	os.Setenv("WEBHOOK_SECRET", "secret")
 	os.Setenv("NEXTCLOUD_OIDC_USER_API_URL", "https://example.com/ocs/v2.php/apps/user_oidc/api/v1/user")
 	os.Setenv("NEXTCLOUD_ADMIN_USERNAME", "admin")
 	os.Setenv("NEXTCLOUD_ADMIN_PASSWORD", "password")
@@ -24,6 +25,7 @@ func (s *ConfigSuite) TestBuildConfig() {
 
 	s.Equal("info", cfg.LogLevel)
 	s.Equal(":8080", cfg.ListenAddr)
+	s.Equal("secret", cfg.WebhookSecret)
 
 	s.NotNil(cfg.Nextcloud)
 	s.Equal("https://example.com/ocs/v2.php/apps/user_oidc/api/v1/user", cfg.Nextcloud.ApiUrl)
