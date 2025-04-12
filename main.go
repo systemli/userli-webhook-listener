@@ -1,115 +1,65 @@
 package main
 
 import (
-	"encoding/base64"
-	"fmt"
-	"net/http"
-	"net/url"
+	"log"
 	"os"
-	"strings"
 
-	"github.com/gorilla/mux"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
+var logger *zap.Logger
+
+func init() {
+	logLevel := "info"
+	if os.Getenv("LOG_LEVEL") != "" {
+		logLevel = os.Getenv("LOG_LEVEL")
+	}
+
+	atomic := zap.NewAtomicLevel()
+	level, err := zapcore.ParseLevel(logLevel)
+	if err != nil {
+		log.Fatal(err)
+	}
+	atomic.SetLevel(level)
+	logger = zap.New(zapcore.NewCore(
+		zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig()),
+		zapcore.Lock(os.Stdout),
+		atomic,
+	))
+}
+
 func main() {
-	r := mux.NewRouter()
-
-	r.HandleFunc("/user", handleUserCreated).Methods(http.MethodPost)
-	r.HandleFunc("/user/{email}", handleUserDeleted).Methods(http.MethodDelete)
-
-	http.Handle("/", r)
-
-	fmt.Println("Listening on :8080...")
-	if err := http.ListenAndServe(":8080", nil); err != nil {
-		fmt.Println("Error starting server:", err)
-	}
-}
-
-func handleUserCreated(w http.ResponseWriter, r *http.Request) {
-	// Parse the form data
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Failed to parse form", http.StatusBadRequest)
-		return
+	listenAddr := ":8080"
+	if os.Getenv("LISTEN_ADDR") != "" {
+		listenAddr = os.Getenv("LISTEN_ADDR")
 	}
 
-	// Extract the email parameter
-	email := r.PostFormValue("email")
-	if email == "" {
-		http.Error(w, "Missing email parameter", http.StatusBadRequest)
-		return
+	nextcloudUrl := os.Getenv("NEXTCLOUD_OIDC_USER_API_URL")
+	if nextcloudUrl == "" {
+		logger.Fatal("NEXTCLOUD_OIDC_USER_API_URL environment variable is required")
+	}
+	nextcloudUsername := os.Getenv("NEXTCLOUD_ADMIN_USERNAME")
+	if nextcloudUsername == "" {
+		logger.Fatal("NEXTCLOUD_ADMIN_USERNAME environment variable is required")
+	}
+	nextcloudPassword := os.Getenv("NEXTCLOUD_ADMIN_PASSWORD")
+	if nextcloudPassword == "" {
+		logger.Fatal("NEXTCLOUD_ADMIN_PASSWORD environment variable is required")
+	}
+	nextcloudProviderID := os.Getenv("NEXTCLOUD_OIDC_PROVIDER_ID")
+	if nextcloudProviderID == "" {
+		logger.Fatal("NEXTCLOUD_OIDC_PROVIDER_ID environment variable is required")
 	}
 
-	fmt.Println("User created event received")
-
-	// Send create request to the Nextcloud OIDC user API
-	resp, err := provisionNextcloudUser(email)
+	logger.Info("Starting server", zap.String("listenAddr", listenAddr))
+	nc, err := NewNextcloud(nextcloudUrl, nextcloudUsername, nextcloudPassword, nextcloudProviderID)
 	if err != nil {
-		http.Error(w, "Failed to provision user in Nextcloud", http.StatusInternalServerError)
-	} else {
-		w.WriteHeader(resp.StatusCode)
-	}
-}
-
-func handleUserDeleted(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	email := vars["email"]
-	if email == "" {
-		http.Error(w, "Missing email parameter", http.StatusBadRequest)
-		return
+		logger.Fatal("Failed to create Nextcloud client", zap.Error(err))
 	}
 
-	fmt.Println("User deleted event received")
-
-	// Send delete request to the Nextcloud OIDC user API
-	resp, err := deprovisionNextcloudUser(email)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to deprovision user in Nextcloud. Error: %s", err), http.StatusInternalServerError)
-	} else {
-		w.WriteHeader(resp.StatusCode)
+	s := NewServer(nc)
+	if err := s.Start(listenAddr); err != nil {
+		logger.Fatal("Failed to start server", zap.Error(err))
 	}
-}
-
-func provisionNextcloudUser(email string) (*http.Response, error) {
-	// Extract the userId from the email
-	userId := strings.Split(email, "@")[0]
-
-	client := &http.Client{}
-	req, err := http.NewRequest(http.MethodPost, os.Getenv("NEXTCLOUD_OIDC_USER_API"), nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %v", err)
-	}
-
-	prepareNextcloudRequest(req)
-	req.Header.Set("Content-Type", "application/json")
-
-	data := url.Values{}
-	data.Set("userId", userId)
-	data.Set("email", userId)
-	data.Set("displayName", userId)
-	req.URL.RawQuery = data.Encode()
-
-	return client.Do(req)
-}
-
-func deprovisionNextcloudUser(email string) (*http.Response, error) {
-	// Extract the userId from the email
-	userId := strings.Split(email, "@")[0]
-
-	client := &http.Client{}
-	req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("%s/%s", os.Getenv("NEXTCLOUD_OIDC_USER_API"), userId), nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %v", err)
-	}
-
-	prepareNextcloudRequest(req)
-
-	return client.Do(req)
-}
-
-func prepareNextcloudRequest(req *http.Request) {
-	// Create the basic auth header
-	auth := fmt.Sprintf("%s:%s", os.Getenv("NEXTCLOUD_ADMIN_USERNAME"), os.Getenv("NEXTCLOUD_ADMIN_PASSWORD"))
-	encoded := base64.StdEncoding.EncodeToString([]byte(auth))
-	req.Header.Set("Authorization", "Basic "+encoded)
-	req.Header.Set("ocs-apirequest", "true")
 }
