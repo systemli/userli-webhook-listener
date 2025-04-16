@@ -10,6 +10,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"go.uber.org/zap"
 )
 
 type Server struct {
@@ -59,7 +60,7 @@ func (s *Server) handleUserliEvent(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleUserCreated(event UserEvent) {
-	logger.Info("User created event received")
+	logger.With(zap.String("email", event.Data.Email)).Info("User created event received")
 
 	err := s.nextcloud.ProvisionUser(event.Data.Email)
 	if err != nil {
@@ -68,7 +69,7 @@ func (s *Server) handleUserCreated(event UserEvent) {
 }
 
 func (s *Server) handleUserDeleted(event UserEvent) {
-	logger.Info("User deleted event received")
+	logger.With(zap.String("email", event.Data.Email)).Info("User deleted event received")
 
 	err := s.nextcloud.DeprovisionUser(event.Data.Email)
 	if err != nil {
