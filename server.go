@@ -16,14 +16,16 @@ import (
 type Server struct {
 	router        *chi.Mux
 	nextcloud     *Nextcloud
+	synapse       *Synapse
 	webhookSecret string
 }
 
-func NewServer(webhookSecret string, nextcloud *Nextcloud) *Server {
+func NewServer(webhookSecret string, nextcloud *Nextcloud, synapse *Synapse) *Server {
 	return &Server{
 		router:        chi.NewRouter(),
 		webhookSecret: webhookSecret,
 		nextcloud:     nextcloud,
+		synapse:       synapse,
 	}
 }
 
@@ -74,6 +76,11 @@ func (s *Server) handleUserDeleted(event UserEvent) {
 	err := s.nextcloud.DeprovisionUser(event.Data.Email)
 	if err != nil {
 		logger.Error("Failed to deprovision user in Nextcloud")
+	}
+
+	err = s.synapse.DeprovisionUser(event.Data.Email)
+	if err != nil {
+		logger.Error("Failed to deprovision user in Synapse")
 	}
 }
 

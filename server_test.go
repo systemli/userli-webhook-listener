@@ -23,16 +23,23 @@ func (s *ServerSuite) SetupTest() {
 	gock.DisableNetworking()
 	defer gock.Off()
 
-	config := &NextcloudConfig{
+	ncConfig := &NextcloudConfig{
 		ApiUrl:     "https://example.com/ocs/v2.php/apps/user_oidc/api/v1/user",
 		Username:   "admin",
 		Password:   "password",
 		ProviderID: "provider-id",
 		Domain:     "example.com",
 	}
-	nc := NewNextcloud(config)
+	nc := NewNextcloud(ncConfig)
 
-	s.server = NewServer("secret", nc)
+	syConfig := &SynapseConfig{
+		ApiUrl:      "https://example.com/_synapse/admin/v1",
+		AccessToken: "token",
+		Domain:      "example.com",
+	}
+	sy := NewSynapse(syConfig)
+
+	s.server = NewServer("secret", nc, sy)
 }
 
 func (s *ServerSuite) TestHandleWebhook() {
@@ -90,6 +97,10 @@ func (s *ServerSuite) TestHandleUserDeleted() {
 	s.Run("happy path", func() {
 		gock.New("https://example.com").
 			Delete("/ocs/v2.php/apps/user_oidc/api/v1/user/user").
+			Reply(200)
+
+		gock.New("https://example.com").
+			Post("/_synapse/admin/v1/deactivate/user").
 			Reply(200)
 
 		event := UserEvent{
