@@ -7,6 +7,7 @@ type Config struct {
 	ListenAddr    string
 	WebhookSecret string
 	Nextcloud     *NextcloudConfig
+	Synapse       *SynapseConfig
 }
 
 func BuildConfig() *Config {
@@ -14,6 +15,7 @@ func BuildConfig() *Config {
 		LogLevel:   "info",
 		ListenAddr: ":8080",
 		Nextcloud:  &NextcloudConfig{},
+		Synapse:    &SynapseConfig{},
 	}
 
 	if os.Getenv("LOG_LEVEL") != "" {
@@ -29,6 +31,11 @@ func BuildConfig() *Config {
 		Password:   getEnvOrFatal("NEXTCLOUD_ADMIN_PASSWORD"),
 		ProviderID: getEnvOrFatal("NEXTCLOUD_OIDC_PROVIDER_ID"),
 		Domain:     getEnvOrFatal("NEXTCLOUD_USER_DOMAIN"),
+	}
+	cfg.Synapse = &SynapseConfig{
+		ApiUrl:      getEnvOrFatal("SYNAPSE_USER_ADMIN_API_URL"),
+		AccessToken: getEnvOrFatal("SYNAPSE_ADMIN_ACCESS_TOKEN"),
+		Domain:      getEnvOrFatal("SYNAPSE_USER_DOMAIN"),
 	}
 
 	return cfg
