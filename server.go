@@ -66,7 +66,7 @@ func (s *Server) handleUserCreated(event UserEvent) {
 
 	err := s.nextcloud.ProvisionUser(event.Data.Email)
 	if err != nil {
-		logger.Error("Failed to provision user in Nextcloud")
+		logger.With(zap.Error(err)).Error("Failed to provision user in Nextcloud")
 	}
 }
 
@@ -75,12 +75,12 @@ func (s *Server) handleUserDeleted(event UserEvent) {
 
 	err := s.nextcloud.DeprovisionUser(event.Data.Email)
 	if err != nil {
-		logger.Error("Failed to deprovision user in Nextcloud")
+		logger.With(zap.Error(err)).Error("Failed to deprovision user in Nextcloud")
 	}
 
 	err = s.synapse.DeprovisionUser(event.Data.Email)
 	if err != nil {
-		logger.Error("Failed to deprovision user in Synapse")
+		logger.With(zap.Error(err)).Error("Failed to deprovision user in Synapse")
 	}
 }
 
