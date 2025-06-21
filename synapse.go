@@ -65,7 +65,7 @@ func (s *Synapse) DeprovisionUser(email string) error {
 }
 
 func (s *Synapse) prepareRequest(req *http.Request) {
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer: %s", s.config.AccessToken))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", s.config.AccessToken))
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("User-Agent", "UserliWebhookListener/1.0")
 	req.Header.Set("ocs-apirequest", "true")
