@@ -1,6 +1,6 @@
 module github.com/systemli/userli-webhook-listener
 
-go 1.24
+go 1.25.4
 
 require (
 	github.com/go-chi/chi/v5 v5.2.3
