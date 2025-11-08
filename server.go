@@ -88,7 +88,7 @@ func (s *Server) Authmiddleware(next http.Handler) http.Handler {
 	secret := s.webhookSecret
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		signature := r.Header.Get("X-Signature")
+		signature := r.Header.Get("X-Webhook-Signature")
 		if signature == "" {
 			http.Error(w, "Missing signature header", http.StatusUnauthorized)
 			return

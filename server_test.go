@@ -133,7 +133,7 @@ func (s *ServerSuite) TestAuthMiddleware() {
 		validSignature := hex.EncodeToString(mac.Sum(nil))
 
 		req := httptest.NewRequest("POST", "/userli", bytes.NewBuffer(payload))
-		req.Header.Set("X-Signature", validSignature)
+		req.Header.Set("X-Webhook-Signature", validSignature)
 
 		rr := httptest.NewRecorder()
 		wrappedHandler := s.server.Authmiddleware(http.HandlerFunc(handler))
@@ -145,7 +145,7 @@ func (s *ServerSuite) TestAuthMiddleware() {
 	s.Run("invalid token", func() {
 		payload := []byte(`{"dummy":"data"}`)
 		req := httptest.NewRequest("POST", "/userli", bytes.NewBuffer(payload))
-		req.Header.Set("X-Signature", "invalid-signature")
+		req.Header.Set("X-Webhook-Signature", "invalid-signature")
 
 		rr := httptest.NewRecorder()
 		wrappedHandler := s.server.Authmiddleware(http.HandlerFunc(handler))
