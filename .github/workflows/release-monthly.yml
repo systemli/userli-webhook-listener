@@ -12,11 +12,17 @@ permissions:
 jobs:
   publish:
     name: Publish Patch Release Draft
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
+      - name: Obtain Access Token
+        id: acces_token
+        run: |
+          TOKEN="$(npx obtain-github-app-installation-access-token ci ${{ secrets.SYSTEMLI_APP_CREDENTIALS_TOKEN }})"
+          echo "token=$TOKEN" >> $GITHUB_OUTPUT
+      
       - name: Publish draft if it is a patch release
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.acces_token.outputs.token }}
           GH_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
